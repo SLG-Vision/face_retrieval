@@ -165,5 +165,5 @@ cython_debug/
 
 *.pt # pytorch embedding db
 *.zip # downloaded dataset
-
-
+blacklist
+**/blacklist/*.*
