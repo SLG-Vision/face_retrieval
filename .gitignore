@@ -167,3 +167,6 @@ cython_debug/
 *.zip # downloaded dataset
 blacklist
 **/blacklist/*.*
+**/datasets
+datasets
+datasets/**
