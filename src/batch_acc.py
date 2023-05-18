@@ -41,6 +41,8 @@ def eval() -> dict:
 
         with torch.no_grad():
             input_cropped = mtcnn(input_image.convert("RGB"))
+            if(input_cropped is None):
+                continue
             input_embedding = model(input_cropped.unsqueeze(0))
 
         distances = []
