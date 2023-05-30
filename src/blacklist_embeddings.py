@@ -5,7 +5,7 @@ from sys import path
 from os import listdir
 from facenet_pytorch import MTCNN, InceptionResnetV1
 
-# carica il modello pre-addestrato (es. ResNet50)
+# model loading
 print("Pytorch CUDA Version is ", torch.version.cuda)
 
 batch_cont = 0
@@ -15,7 +15,6 @@ if torch.cuda.is_available():
 else: 
  dev = "cpu" 
 device = torch.device(dev) 
-#torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 BLACKLIST_FOLDER_NAME = 'blacklist'
 AUGMENTATION_ITER = 5
@@ -58,10 +57,9 @@ for image_path in blacklist_images:
     blacklist_embeddings.extend(embedding) # extend siccome ritorno una lista e voglio che i suoi elementi vadano in questa, non voglio append di liste come iter
     print(f" --> {batch_cont} : {len(blacklist_embeddings)}")
     batch_cont+=1
+
 # salva i vettori di embedding della lista nera in un file .pt
 #torch.save(blacklist_embeddings, 'blacklist.pt')
-
-
 
 def main():
     pass
