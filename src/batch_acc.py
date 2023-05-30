@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from collections import Counter
-from pprint import pprint
 import json
 
 def euclidean_distance(x, y):
@@ -29,7 +28,7 @@ def get_image_files(path) -> tuple[list, int]:
 
 def eval(device) -> tuple[dict, int, int, list, list]:
     current_directory = os.path.dirname(os.path.abspath(__file__))
-    TP_number =  len(get_image_files(os.path.join(current_directory, 'datasets', 'lfw-deepfunneled', 'TP')))
+    _, TP_number =  get_image_files(os.path.join(current_directory, 'datasets', 'lfw-deepfunneled', 'TP'))
     images, n_images = get_image_files(os.path.join(current_directory, 'datasets', 'lfw-deepfunneled'))
     res = {}
     
