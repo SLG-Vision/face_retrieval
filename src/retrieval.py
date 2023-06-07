@@ -171,7 +171,7 @@ class Retrieval():
 
 
 
-    def computeAccuracy(self, testSetPath, truePositivePath, stdoutResult=True, resultsFileName="results.json") -> None:
+    def computeAccuracy(self, testSetPath, truePositivePath, stdoutResult=True, resultsFileName="results_accuracy.json") -> None:
         resultDictionary = {}
         resultDictionary['detected'],n, tp_n_images, positive_list, error_list = self.__computeAccuracySide(testSetPath, truePositivePath)
         counter = Counter(resultDictionary['detected'].values())
@@ -179,7 +179,7 @@ class Retrieval():
         resultDictionary['positive_targets'] = positive_list
         resultDictionary['error_targets'] = error_list
 
-        print(f"total: {n}")
+        print(f"Total: {n}")
         print(f"Actual TP: {tp_n_images}")
         print(f"target found: {counter['T']}\ntarget not found: {counter['F']}\ntarget error: {counter['E']}\n")
 
