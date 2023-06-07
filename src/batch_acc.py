@@ -38,7 +38,11 @@ def eval() -> dict:
     # complexity: 175 embedding db against ~14k images. O(kn) + O(sorting_comp*k)
     for img in images:
         input_image = Image.open(img)
-
+        if(input_image is None):
+            print(f"error opening: {img}\n")
+            continue
+        input_image.close()
+        continue
         with torch.no_grad():
             input_cropped = mtcnn(input_image.convert("RGB"))
             if(input_cropped is None):
