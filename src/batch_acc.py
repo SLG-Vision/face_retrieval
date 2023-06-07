@@ -46,14 +46,6 @@ def eval(device) -> tuple[dict, int, int, list, list]:
         print(f"Computing {cont}/{n_images}\n")
         
         input_image = Image.open(img)
-<<<<<<< HEAD
-        if(input_image is None):
-            print(f"error opening: {img}\n")
-            continue
-        input_image.close()
-        continue
-=======
->>>>>>> 4bc115ca176de806a258219ba646d2d37cef2c8c
         with torch.no_grad():
             input_cropped = mtcnn(input_image.convert("RGB"))
             if(input_cropped is None):
