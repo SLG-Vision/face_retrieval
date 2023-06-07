@@ -2,6 +2,10 @@ from retrieval import Retrieval
 import cv2
 from os.path import dirname, abspath, join
 
+
+
+# Example of usage across the Building phase, opencv inference RT phase and testing phase
+
 def main():
     
     retr = Retrieval('m_blacklist.pt', debug=True)
