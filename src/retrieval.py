@@ -37,8 +37,7 @@ class Retrieval():
         try:
             self._blacklistEmbeddings = torch.load(self._blacklistEmbeddingsFilename)
         except:
-            print(f"Impossible loading embedding file '{self._blacklistEmbeddingsFilename}'")
-            exit(1)
+            print(f"Impossible to load pytorch embedding file, remember to build one before.\n Filename: '{self._blacklistEmbeddingsFilename}'")
 
     def setDistanceThreshold(self, threshold):
             self._distanceThreshold = threshold
