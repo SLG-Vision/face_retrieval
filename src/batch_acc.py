@@ -7,13 +7,13 @@ from matplotlib import pyplot as plt
 import numpy as np
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from collections import Counter
-from pprint import pprint
+import json
 
 def euclidean_distance(x, y):
     return torch.sqrt(torch.sum((x - y) ** 2))
 
-# complexity: high
-def get_image_files(path) -> list:
+# complexity: mid
+def get_image_files(path) -> tuple[list, int]:
     image_extensions = ['.jpg', '.jpeg', '.png', '.gif']  # Aggiungi qui le estensioni dei file immagine che desideri includere
 
     image_files = []
@@ -23,29 +23,45 @@ def get_image_files(path) -> list:
             if any(file.lower().endswith(ext) for ext in image_extensions):
                 image_files.append(os.path.join(root, file))
 
-    return image_files
+    return image_files, len(image_files)
 
 
-def eval() -> dict:
+def eval(device) -> tuple[dict, int, int, list, list]:
     current_directory = os.path.dirname(os.path.abspath(__file__))
-    images = get_image_files(os.path.join(current_directory, 'datasets', 'lfw-deepfunneled', 'lfw'))
+    _, TP_number =  get_image_files(os.path.join(current_directory, 'datasets', 'lfw-deepfunneled', 'TP'))
+    images, n_images = get_image_files(os.path.join(current_directory, 'datasets', 'lfw-deepfunneled'))
     res = {}
     
-    mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device='cuda:0')
+    mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device=device)
     model = InceptionResnetV1(pretrained='vggface2').eval()
     blacklist_embeddings = torch.load('blacklist.pt')
-
+    cont = 1
+    
+    positive_list = []
+    error_list = []
+    
     # complexity: 175 embedding db against ~14k images. O(kn) + O(sorting_comp*k)
     for img in images:
+        
+        print(f"Computing {cont}/{n_images}\n")
+        
         input_image = Image.open(img)
+<<<<<<< HEAD
         if(input_image is None):
             print(f"error opening: {img}\n")
             continue
         input_image.close()
         continue
+=======
+>>>>>>> 4bc115ca176de806a258219ba646d2d37cef2c8c
         with torch.no_grad():
             input_cropped = mtcnn(input_image.convert("RGB"))
             if(input_cropped is None):
+                target='E'
+                res[img] = target
+                error_list.append(img)
+                input_image.close()
+                cont+=1
                 continue
             input_embedding = model(input_cropped.unsqueeze(0))
 
@@ -58,21 +74,44 @@ def eval() -> dict:
             distances.append(dist.item())
 
         max_distance = max(distances)
-        threshold=0.8
-        target=False
+        threshold=0.7
+        target='F'
         if max_distance >= threshold:
-            target=True
+            positive_list.append(img)
+            target='T'
             
         res[img] = target    
         
         input_image.close()
-    return res
+        cont +=1
+    return res, n_images, TP_number, positive_list, error_list
 
 def main() -> bool:
-    r = eval()
-    counter = Counter(r.values())
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
+    r={}
+    r['detected'],n, tp_n_images, positive_list, error_list = eval(device)
+    counter = Counter(r['detected'].values())
     
-    print(f"target found: {counter[True]}\ntarget not found: {counter[False]}" )
+    printOut = True
+    
+    r['positive_targets'] = positive_list
+    r['error_targets'] = error_list
+    
+    print(f"total: {n}")
+    print(f"Actual TP: {tp_n_images}")
+    print(f"target found: {counter['T']}\ntarget not found: {counter['F']}\ntarget error: {counter['E']}\n")
+    
+    if printOut:
+        print("Positive targets:")
+        for e in positive_list:
+            print(e)
+        print("Error targets:")
+        for e in error_list:
+            print(e)
+    
+    with open("out_res.json", "w") as file:
+        json.dump(r, file)
     
     
     return True
