@@ -170,3 +170,5 @@ blacklist
 **/datasets
 datasets
 datasets/**
+
+.vscode
