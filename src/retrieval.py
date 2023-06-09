@@ -15,7 +15,7 @@ from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CU
 class Retrieval():
     _usingMtcnn:bool = False
     _blacklistEmbeddingsFilename:str = ""
-    _blacklistEmbeddings:list = []
+    _blacklistEmbeddings:list[float] = []
     _distanceThreshold:float = 0
     def _distanceFunction(x,y): torch.cdist(x,y,2) # type: ignore
     _debug:bool = False
@@ -162,7 +162,7 @@ class Retrieval():
     # testing
     
     def __get_image_files(self, path) -> tuple[list, int]:
-        image_extensions = ['.jpg', '.jpeg', '.png', '.gif']  # Aggiungi qui le estensioni dei file immagine che desideri includere
+        image_extensions = ['.jpg', '.jpeg', '.png', '.gif']
 
         image_files = []
 
