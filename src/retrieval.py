@@ -13,24 +13,30 @@ from collections import Counter
 from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INTER_AREA, INTER_LINEAR
 
 class Retrieval():
-    _usingMtcnn = False
-    _blacklistEmbeddingsFilename = ""
-    _blacklistEmbeddings = []
-    _distanceThreshold = 0
+    _usingMtcnn:bool = False
+    _blacklistEmbeddingsFilename:str = ""
+    _blacklistEmbeddings:tuple = []
+    _distanceThreshold:float = 0
     def _distanceFunction(x,y): torch.cdist(x,y,2) # type: ignore
-    _debug = False
-    _distances = []
-    _visualize = False
-    _device = None
-    _blacklistFolderName=""
-    _workspacePath = getcwd()
-    _weigths = ""
-    _debugAverage = True
+    _debug:bool = False
+    _distances:tuple = []
+    _visualize:bool = False
+    _device:str = None
+    _blacklistFolderName:str = ""
+    _workspacePath:str = getcwd()
+    _weigths:str = ""
+    _debugAverage:bool = True
+    _usingAverage:bool = True
+    _usingDynamicDetection:bool = False
+    _latestAvgDistance:float = -1.0
+    _shiftPercentage:float = 0.1
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, toVisualize=False, debug=False, debugAverage=True) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, usingAverage = True, useDynamicDetection = False, toVisualize=False, debug=False, debugAverage=True) -> None:
         self._distanceThreshold = threshold
         self._debugAverage = debugAverage
+        self._usingAverage = usingAverage
         self._visualize = toVisualize
+        self._usingDynamicDetection = useDynamicDetection
         self._blacklistEmbeddingsFilename = embeddingsFileName
         self._weigths = weights
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -88,15 +94,26 @@ class Retrieval():
         y = (x - mean) / std_adj
         return y
     
+    def __is_percent_decreased(self, value, decreased_value, percent):
+        # Calcola il valore percentuale di riduzione
+        reduction = (value - decreased_value) / value * 100
+
+        # Verifica se il valore percentuale di riduzione è uguale o superiore al percentuale fornito
+        if reduction >= percent:
+            return True
+        else:
+            return False
+    
+    
     
     def evaluateFrame(self, input_image) -> int:
         """_summary_
 
         Args:
-            input_image (_type_): _description_
+            input_image (PIL, ndarray etc): current frame to evaluate
 
         Returns:
-            int: 3 if no face detected, 2 if face detected but not recognized, 1 if face detected and recognized
+            int: 4 result not yet avialable, 3 if no face detected, 2 if face detected but not recognized, 1 if face detected and recognized
         """
         if(type(input_image) == np.ndarray):
             input_image = self.toPilImage(input_image)
@@ -142,17 +159,38 @@ class Retrieval():
             self._distances.append(dist.item())
 
         max_distance = max(self._distances)
-        avg_distance = sum(self._distances)/len(self._distances)
+        avg_distance:float = sum(self._distances)/len(self._distances)
+        
+        if self._usingAverage: distance = avg_distance
+        else: distance = max_distance
+        
         if(self._debug):
-            if(self._debugAverage):
+            if(self._debugAverage and self._usingAverage):
                 print(f"Average distance: {avg_distance}")
             else:
                 print(sorted(self._distances))
-
-        if avg_distance <= self._distanceThreshold:
-            return 1
+                
+        if(self._usingDynamicDetection == False):
+            if distance <= self._distanceThreshold:
+                return 1
+            else:
+                return 2
         else:
-            return 2
+            if self._latestAvgDistance == -1:
+                self._latestAvgDistance = avg_distance
+                return 4
+            else:
+                # i have to check if the distance is increasing or decreasing by _shiftPercentage
+                print(f'avg_distance: {avg_distance} - latestAvgDistance: {self._latestAvgDistance}\n')
+                r = self.__is_percent_decreased(avg_distance, self._latestAvgDistance, self._shiftPercentage)
+                self._latestAvgDistance = avg_distance
+                v:float = avg_distance - self._latestAvgDistance
+                print(v)
+                if (avg_distance - self._latestAvgDistance) + self._shiftPercentage > 0:
+                    return 1
+                else:
+                    return 2
+                
         
     # testing
     
