@@ -14,7 +14,7 @@ class Retrieval():
     _usingMtcnn = False
     _blacklistEmbeddingsFilename = ""
     _blacklistEmbeddings = []
-    _distanceThreshold = 0.8
+    _distanceThreshold = 0
     _distanceFunction = torch.nn.CosineSimilarity(dim=0)
     _debug = False
     _distances = []
@@ -24,7 +24,8 @@ class Retrieval():
     _workspacePath = getcwd()
     _weigths = ""
     
-    def __init__(self, embeddingsFileName, weights='vggface2', usingMtcnn=True, debug=False) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, debug=False) -> None:
+        self._distanceThreshold = threshold
         self._blacklistEmbeddingsFilename = embeddingsFileName
         self._weigths = weights
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
