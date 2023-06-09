@@ -15,11 +15,11 @@ from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CU
 class Retrieval():
     _usingMtcnn:bool = False
     _blacklistEmbeddingsFilename:str = ""
-    _blacklistEmbeddings:tuple = []
+    _blacklistEmbeddings:list = []
     _distanceThreshold:float = 0
     def _distanceFunction(x,y): torch.cdist(x,y,2) # type: ignore
     _debug:bool = False
-    _distances:tuple = []
+    _distances:list[float] = []
     _visualize:bool = False
     _device:torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _blacklistFolderName:str = ""
@@ -97,8 +97,7 @@ class Retrieval():
         Returns:
             int: 4 result not yet avialable, 3 if no face detected, 2 if face detected but not recognized, 1 if face detected and recognized
         """
-        
-        self._distances = []
+        self._distances.clear()
         
         if(type(input_image) == np.ndarray):
             input_image = self.toPilImage(input_image)
