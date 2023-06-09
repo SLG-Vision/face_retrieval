@@ -15,7 +15,7 @@ class Retrieval():
     _blacklistEmbeddingsFilename = ""
     _blacklistEmbeddings = []
     _distanceThreshold = 0
-    _distanceFunction = torch.nn.CosineSimilarity(dim=0)
+    def _distanceFunction(x,y): torch.cdist(x,y,2) # type: ignore
     _debug = False
     _distances = []
     _visualize = False
@@ -23,9 +23,11 @@ class Retrieval():
     _blacklistFolderName=""
     _workspacePath = getcwd()
     _weigths = ""
+    _debugAverage = True
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, debug=False) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, debug=False, debugAverage=True) -> None:
         self._distanceThreshold = threshold
+        self._debugAverage = debugAverage
         self._blacklistEmbeddingsFilename = embeddingsFileName
         self._weigths = weights
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -97,18 +99,23 @@ class Retrieval():
                         ax.scatter(landmark[:, 0], landmark[:, 1], s=8)
                     fig.show()
             else:
-                inference_embedding = self._model(input_image.convert("RGB"))
+                inference_embedding = self._model.forward(input_image.convert("RGB"))
 
 
         for features in self._blacklistEmbeddings:
-            dist = self._distanceFunction(features, inference_embedding.squeeze(0))
+            dist = torch.dist(features, inference_embedding, 2)
+            #dist = self._distanceFunction(features, inference_embedding)
             self._distances.append(dist.item())
 
         max_distance = max(self._distances)
+        avg_distance = sum(self._distances)/len(self._distances)
         if(self._debug):
-            print(sorted(self._distances))
+            if(self._debugAverage):
+                print(f"Average distance: {avg_distance}")
+            else:
+                print(sorted(self._distances))
 
-        if max_distance >= self._distanceThreshold:
+        if avg_distance <= self._distanceThreshold:
             return True
         else:
             return False
