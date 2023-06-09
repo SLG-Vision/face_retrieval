@@ -5,6 +5,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import numpy as np
+from numpy import asarray
 from os import listdir, getcwd, walk
 from os.path import join, abspath, dirname
 from json import dump
@@ -76,17 +77,25 @@ class Retrieval():
     
     
     # inference
-    def evaluateFrame(self, input_image) -> bool:  
+    def evaluateFrame(self, input_image) -> int:
+        """_summary_
+
+        Args:
+            input_image (_type_): _description_
+
+        Returns:
+            int: 3 if no face detected, 2 if face detected but not recognized, 1 if face detected and recognized
+        """
         if(type(input_image) == np.ndarray):
             input_image = self.toPilImage(input_image)
         #input_image = Image.open(input_image)
 
 
         with torch.no_grad():
-            if(self._usingMtcnn):
+            if(self._usingMtcnn):   # 3*160*160
                 input_cropped = self._mtcnn(input_image.convert("RGB"))
                 if(input_cropped is None):
-                    return False
+                    return 3        # fallback
                 inference_embedding = self._model(input_cropped.unsqueeze(0))
                 if(self._visualize):
                     boxes, probs, landmarks = self._mtcnn.detect(PILimage(input_image), landmarks=True) # type: ignore
@@ -99,7 +108,10 @@ class Retrieval():
                         ax.scatter(landmark[:, 0], landmark[:, 1], s=8)
                     fig.show()
             else:
-                inference_embedding = self._model.forward(input_image.convert("RGB"))
+                print(type(input_image))
+                x = asarray(input_image.convert("RGB")) # 480*480*3
+                y = torch.Tensor(x)
+                inference_embedding = self._model(y)
 
 
         for features in self._blacklistEmbeddings:
@@ -116,9 +128,9 @@ class Retrieval():
                 print(sorted(self._distances))
 
         if avg_distance <= self._distanceThreshold:
-            return True
+            return 1
         else:
-            return False
+            return 2
         
     # testing
     
