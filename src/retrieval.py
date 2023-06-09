@@ -21,7 +21,7 @@ class Retrieval():
     _debug:bool = False
     _distances:tuple = []
     _visualize:bool = False
-    _device:str = None
+    _device:torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _blacklistFolderName:str = ""
     _workspacePath:str = getcwd()
     _weigths:str = ""
@@ -39,7 +39,6 @@ class Retrieval():
         self._usingDynamicDetection = useDynamicDetection
         self._blacklistEmbeddingsFilename = embeddingsFileName
         self._weigths = weights
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._debug = debug
         self._usingMtcnn = usingMtcnn
         self.toPilImage = T.ToPILImage(mode='RGB')
