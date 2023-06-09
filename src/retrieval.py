@@ -10,6 +10,7 @@ from os import listdir, getcwd, walk
 from os.path import join, abspath, dirname
 from json import dump
 from collections import Counter
+from cv2 import resize, cvtColor, COLOR_BGR2RGB, COLOR_RGB2BGR
 
 class Retrieval():
     _usingMtcnn = False
@@ -26,9 +27,10 @@ class Retrieval():
     _weigths = ""
     _debugAverage = True
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, debug=False, debugAverage=True) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, toVisualize=False, debug=False, debugAverage=True) -> None:
         self._distanceThreshold = threshold
         self._debugAverage = debugAverage
+        self._visualize = toVisualize
         self._blacklistEmbeddingsFilename = embeddingsFileName
         self._weigths = weights
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -98,19 +100,21 @@ class Retrieval():
                     return 3        # fallback
                 inference_embedding = self._model(input_cropped.unsqueeze(0))
                 if(self._visualize):
-                    boxes, probs, landmarks = self._mtcnn.detect(PILimage(input_image), landmarks=True) # type: ignore
+                    boxes, probs, landmarks = self._mtcnn.detect(input_image, landmarks=True) # type: ignore
                     self.toPilImage(input_cropped).show()
                     fig, ax = plt.subplots(figsize=(16, 12))
-                    ax.imshow(self.toPilImage(input_image))
+                    adj_img = cvtColor(np.array(input_image), COLOR_BGR2RGB)    
+                    ax.imshow(adj_img)
                     ax.axis('off')
                     for box, landmark in zip(boxes, landmarks):
                         ax.scatter(*np.meshgrid(box[[0, 2]], box[[1, 3]])) # type: ignore
                         ax.scatter(landmark[:, 0], landmark[:, 1], s=8)
                     fig.show()
             else:
-                print(type(input_image))
                 x = asarray(input_image.convert("RGB")) # 480*480*3
-                y = torch.Tensor(x)
+                y = torch.Tensor(x).permute(2,0,1) # 3*480*480
+                y = y.unsqueeze(0) # 1*3*480*480
+                y = resize(y, (160,160))
                 inference_embedding = self._model(y)
 
 
