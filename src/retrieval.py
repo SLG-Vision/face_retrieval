@@ -90,7 +90,6 @@ class Retrieval():
         """
         if(type(input_image) == np.ndarray):
             input_image = self.toPilImage(input_image)
-        #input_image = Image.open(input_image)
 
 
         with torch.no_grad():
@@ -221,3 +220,6 @@ class Retrieval():
         with open(resultsFileName, "w") as file:
             dump(resultDictionary, file)
 
+
+    def isUsingMtcnn(self) -> bool:
+        return self._usingMtcnn
