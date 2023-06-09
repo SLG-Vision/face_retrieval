@@ -173,7 +173,6 @@ class Retrieval():
                 print(sorted(self._distances))
                 
         if(self._usingDynamicDetection == False):
-            print(len(self._distances))
             if distance <= self._distanceThreshold:
                 return 1
             else:
