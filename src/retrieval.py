@@ -79,6 +79,16 @@ class Retrieval():
     
     
     # inference
+    
+    
+    def __prewhiten(self, x):
+        mean = x.mean()
+        std = x.std()
+        std_adj = std.clamp(min=1.0/(float(x.numel())**0.5))
+        y = (x - mean) / std_adj
+        return y
+    
+    
     def evaluateFrame(self, input_image) -> int:
         """_summary_
 
@@ -115,8 +125,14 @@ class Retrieval():
                 resized = resize(x, dsize=(160,160), interpolation=INTER_LINEAR)
                 if(self._visualize):
                     imshow('resized',resized) # type: ignore
+
                 y = torch.Tensor(resized).permute(2,0,1) # 3*160*160
                 y = y.unsqueeze(0) # 1*3*160*160
+                y = self.__prewhiten(y)
+                
+                if(self._visualize):
+                    processed = y.squeeze(0).permute(1,2,0).numpy()
+                    imshow('prewhitened', processed)
                 inference_embedding = self._model(y)
 
 
