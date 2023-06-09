@@ -7,7 +7,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 import numpy as np
 from numpy import asarray
 from os import listdir, getcwd, walk
-from os.path import join, abspath, dirname
+from os.path import join
 from json import dump
 from collections import Counter
 from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INTER_AREA, INTER_LINEAR
@@ -27,16 +27,12 @@ class Retrieval():
     _weigths:str = ""
     _debugAverage:bool = True
     _usingAverage:bool = True
-    _usingDynamicDetection:bool = False
-    _latestAvgDistance:float = -1.0
-    _shiftPercentage:float = 0.1
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, usingAverage = True, useDynamicDetection = False, toVisualize=False, debug=False, debugAverage=True) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False, debugAverage=True) -> None:
         self._distanceThreshold = threshold
         self._debugAverage = debugAverage
         self._usingAverage = usingAverage
         self._visualize = toVisualize
-        self._usingDynamicDetection = useDynamicDetection
         self._blacklistEmbeddingsFilename = embeddingsFileName
         self._weigths = weights
         self._debug = debug
@@ -70,7 +66,6 @@ class Retrieval():
         for image_path in blacklist_images:
             currentImage = Image.open(image_path)
             croppedImage = self._mtcnn(currentImage)
-            #self.toPilImage(croppedImage).show()
             
             with torch.no_grad():
                 img_embedding = self._model(croppedImage.unsqueeze(0))
@@ -92,18 +87,6 @@ class Retrieval():
         std_adj = std.clamp(min=1.0/(float(x.numel())**0.5))
         y = (x - mean) / std_adj
         return y
-    
-    def __is_percent_decreased(self, value, decreased_value, percent):
-        # Calcola il valore percentuale di riduzione
-        reduction = (value - decreased_value) / value * 100
-
-        # Verifica se il valore percentuale di riduzione è uguale o superiore al percentuale fornito
-        if reduction >= percent:
-            return True
-        else:
-            return False
-    
-    
     
     def evaluateFrame(self, input_image) -> int:
         """_summary_
@@ -157,7 +140,6 @@ class Retrieval():
 
         for features in self._blacklistEmbeddings:
             dist = torch.dist(features, inference_embedding, 2)
-            #dist = self._distanceFunction(features, inference_embedding)
             self._distances.append(dist.item())
 
         max_distance = max(self._distances)
@@ -172,26 +154,10 @@ class Retrieval():
             else:
                 print(sorted(self._distances))
                 
-        if(self._usingDynamicDetection == False):
-            if distance <= self._distanceThreshold:
-                return 1
-            else:
-                return 2
+        if distance <= self._distanceThreshold:
+            return 1
         else:
-            if self._latestAvgDistance == -1:
-                self._latestAvgDistance = avg_distance
-                return 4
-            else:
-                # i have to check if the distance is increasing or decreasing by _shiftPercentage
-                print(f'avg_distance: {avg_distance} - latestAvgDistance: {self._latestAvgDistance}\n')
-                r = self.__is_percent_decreased(avg_distance, self._latestAvgDistance, self._shiftPercentage)
-                self._latestAvgDistance = avg_distance
-                v:float = avg_distance - self._latestAvgDistance
-                print(v)
-                if (avg_distance - self._latestAvgDistance) + self._shiftPercentage > 0:
-                    return 1
-                else:
-                    return 2
+            return 2
                 
         
     # testing
