@@ -10,7 +10,7 @@ from os import listdir, getcwd, walk
 from os.path import join, abspath, dirname
 from json import dump
 from collections import Counter
-from cv2 import resize, cvtColor, COLOR_BGR2RGB, COLOR_RGB2BGR
+from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INTER_AREA, INTER_LINEAR
 
 class Retrieval():
     _usingMtcnn = False
@@ -111,10 +111,13 @@ class Retrieval():
                         ax.scatter(landmark[:, 0], landmark[:, 1], s=8)
                     fig.show()
             else:
-                x = asarray(input_image.convert("RGB")) # 480*480*3
-                y = torch.Tensor(x).permute(2,0,1) # 3*480*480
-                y = y.unsqueeze(0) # 1*3*480*480
-                y = resize(y, (160,160))
+                #x = asarray(resized.convert("RGB")) # 480*480*3
+                x = asarray(input_image.convert("RGB"))
+                resized = resize(x, dsize=(160,160), interpolation=INTER_LINEAR)
+                if(self._visualize):
+                    imshow('resized',resized) # type: ignore
+                y = torch.Tensor(resized).permute(2,0,1) # 3*160*160
+                y = y.unsqueeze(0) # 1*3*160*160
                 inference_embedding = self._model(y)
 
 
