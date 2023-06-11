@@ -151,7 +151,9 @@ class Retrieval():
 
 
         for features in self._blacklistEmbeddings:
-            dist = torch.dist(features, inference_embedding, 2)
+            features = features.unsqueeze(0)        # features: 1*512
+            #inference_embedding = inference_embedding.squeeze(0) # input_embedding: 1*512
+            dist = torch.cdist(features, inference_embedding, 2) # input_embedding: 1*512
             self._distances.append(dist.item())
 
         max_distance = max(self._distances)
