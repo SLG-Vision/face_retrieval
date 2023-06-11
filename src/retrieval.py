@@ -185,7 +185,7 @@ class Retrieval():
             if(self._usingMax):
                 print(f"Max distance: {distance}")
                 
-        if distance <= self._distanceThreshold:
+        if distance >= self._distanceThreshold:
             return 1
         else:
             return 2
