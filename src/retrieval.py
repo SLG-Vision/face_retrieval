@@ -11,7 +11,7 @@ from os.path import join
 from json import dump
 from collections import Counter
 from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INTER_AREA, INTER_LINEAR
-
+from torch.nn import CosineSimilarity
 class Retrieval():
     _usingMtcnn:bool = False
     _blacklistEmbeddingsFilename:str = ""
@@ -29,8 +29,9 @@ class Retrieval():
     _usingAverage:bool = True
     _usingMedian:bool = False
     _usingMax:bool = False
+    _distanceMetric:str = "L2"
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False, debugAverage=True) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, distanceMetric='L2', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False, debugAverage=True) -> None:
         self._distanceThreshold = threshold
         self._debugAverage = debugAverage
         self._usingMax = usingMax
@@ -41,6 +42,7 @@ class Retrieval():
         self._weigths = weights
         self._debug = debug
         self._usingMtcnn = usingMtcnn
+        self._distanceMetric = distanceMetric
         self.toPilImage = T.ToPILImage(mode='RGB')
         
         if(sum([usingAverage, usingMedian, usingAverage]) > 1):
@@ -111,7 +113,6 @@ class Retrieval():
             int: 4 result not yet avialable, 3 if no face detected, 2 if face detected but not recognized, 1 if face detected and recognized
         """
         self._distances.clear()
-        
         if(type(input_image) == np.ndarray):
             input_image = self.toPilImage(input_image)
 
@@ -151,10 +152,18 @@ class Retrieval():
 
 
         for features in self._blacklistEmbeddings:
-            features = features.unsqueeze(0)        # features: 1*512
-            #inference_embedding = inference_embedding.squeeze(0) # input_embedding: 1*512
-            dist = torch.cdist(features, inference_embedding, 2) # input_embedding: 1*512
-            self._distances.append(dist.item())
+            if self._distanceMetric == "L2":
+                features = features.unsqueeze(0)        # features: 1*512
+                #inference_embedding = inference_embedding.squeeze(0) # input_embedding: 1*512
+                dist = torch.cdist(features, inference_embedding, 2) # input_embedding: 1*512
+                self._distances.append(dist.item())
+
+            if self._distanceMetric == "cosine":
+                # use cosine similarity
+                cos = CosineSimilarity(dim=1, eps=1e-6)
+                features = features.unsqueeze(0)        # features: 1*512
+                d = cos(features, inference_embedding)
+                self._distances.append(d.item())
 
         max_distance = max(self._distances)
         avg_distance:float = sum(self._distances)/len(self._distances)
