@@ -25,15 +25,27 @@ class Retrieval():
     _blacklistFolderName:str = ""
     _workspacePath:str = getcwd()
     _weigths:str = ""
-    _debugAverage:bool = True
     _usingAverage:bool = True
     _usingMedian:bool = False
     _usingMax:bool = False
     _distanceMetric:str = "L2"
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, distanceMetric='L2', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False, debugAverage=True) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, distanceMetric='L2', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False) -> None:
+        """constructor of the class
+
+        Args:
+            embeddingsFileName (_type_): .pt file with the blacklist embeddings.
+            weights (str, optional): pretrained weights of facenet. Defaults to 'vggface2'.
+            threshold (float, optional): threshold value that determines the final label, be careful changing this accordingly the metrics you chose. Defaults to 0.7.
+            distanceMetric (str, optional): distance metric between embeddings. Defaults to 'L2'.
+            usingMedian (bool, optional): if element to group distance is given by median. Defaults to False.
+            usingMax (bool, optional): if element to group distance is given by max. Defaults to False.
+            usingMtcnn (bool, optional): if pre-processing mctnn is active. Defaults to True.
+            usingAverage (bool, optional): if element to group distance is given by average. Defaults to True.
+            toVisualize (bool, optional): if you wish to visualize resized and prewhitened image. Defaults to False.
+            debug (bool, optional): enables debug. Defaults to False.
+        """
         self._distanceThreshold = threshold
-        self._debugAverage = debugAverage
         self._usingMax = usingMax
         self._usingAverage = usingAverage
         self._usingMedian = usingMedian
