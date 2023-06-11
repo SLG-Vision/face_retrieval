@@ -27,17 +27,30 @@ class Retrieval():
     _weigths:str = ""
     _debugAverage:bool = True
     _usingAverage:bool = True
+    _usingMedian:bool = False
+    _usingMax:bool = False
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False, debugAverage=True) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False, debugAverage=True) -> None:
         self._distanceThreshold = threshold
         self._debugAverage = debugAverage
+        self._usingMax = usingMax
         self._usingAverage = usingAverage
+        self._usingMedian = usingMedian
         self._visualize = toVisualize
         self._blacklistEmbeddingsFilename = embeddingsFileName
         self._weigths = weights
         self._debug = debug
         self._usingMtcnn = usingMtcnn
         self.toPilImage = T.ToPILImage(mode='RGB')
+        
+        if(sum([usingAverage, usingMedian, usingAverage]) > 1):
+            print("You can't use more than one method to compare the embeddings, please choose only one.")
+            exit(1)
+        
+        if(sum([usingAverage, usingMedian, usingAverage]) == 0):
+            self._usingMax = True
+            print("Using max as default method to compare the embeddings.")
+        
         if(usingMtcnn):
             self._mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device=self._device)
         self._model = InceptionResnetV1(pretrained=self._weigths).eval()
@@ -143,15 +156,23 @@ class Retrieval():
 
         max_distance = max(self._distances)
         avg_distance:float = sum(self._distances)/len(self._distances)
+        median_distance = np.median(self._distances)
         
-        if self._usingAverage: distance = avg_distance
-        else: distance = max_distance
+        if self._usingAverage:
+            distance = avg_distance
+        else:
+            if self._usingMedian:
+                distance = median_distance
+            else:
+                distance = max_distance
         
         if(self._debug):
-            if(self._debugAverage and self._usingAverage):
-                print(f"Average distance: {avg_distance}")
-            else:
-                print(sorted(self._distances))
+            if(self._usingAverage):
+                print(f"Average distance: {distance}")
+            if(self._usingMedian):
+                print(f"Median distance: {distance}")
+            if(self._usingMax):
+                print(f"Max distance: {distance}")
                 
         if distance <= self._distanceThreshold:
             return 1
