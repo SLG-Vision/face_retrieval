@@ -75,11 +75,6 @@ class Retrieval():
             print(f"Impossible to load pytorch embedding file, remember to build one before.\n Filename: '{self._blacklistEmbeddingsFilename}'")
             exit(1)
 
-    def setDistanceThreshold(self, threshold):
-            self._distanceThreshold = threshold
-        
-    def setDistanceFunction(self, distanceFunction):
-            self._distanceFunction = distanceFunction
 
     # building
     def buildBlacklistEmbeddings(self, blacklistFolderName="blacklist", augmentation_iter=1) -> None:
@@ -298,6 +293,9 @@ class Retrieval():
         with open(resultsFileName, "w") as file:
             dump(resultDictionary, file)
 
+
+    # getters and setters
+
     def isUsingMtcnn(self) -> bool:
         return self._usingMtcnn
     
@@ -307,7 +305,15 @@ class Retrieval():
     def isPersonBlacklisted(self) -> bool:
         return self._status == 1
 
-    
+    def getStatus(self) -> int:
+        return self._status
+
+    def setDistanceThreshold(self, threshold):
+            self._distanceThreshold = threshold
+        
+    def setDistanceFunction(self, distanceFunction):
+            self._distanceFunction = distanceFunction
+            
     def __getTextualOutputFromResult(self, result:int) -> str:
         retrieval_label = {1:'Detected and identified', 2:'Detected but not identified', 3: 'Not available yet',}
         return retrieval_label[result]
