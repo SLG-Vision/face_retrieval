@@ -29,6 +29,7 @@ class Retrieval():
     _usingMedian:bool = False
     _usingMax:bool = False
     _distanceMetric:str = "L2"
+    _status:int = 0
     
     def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, distanceMetric='L2', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False) -> None:
         """constructor of the class
@@ -57,11 +58,11 @@ class Retrieval():
         self._distanceMetric = distanceMetric
         self.toPilImage = T.ToPILImage(mode='RGB')
         
-        if(sum([usingAverage, usingMedian, usingAverage]) > 1):
+        if(sum([usingAverage, usingMedian, usingMax]) > 1):
             print("You can't use more than one method to compare the embeddings, please choose only one.")
             exit(1)
         
-        if(sum([usingAverage, usingMedian, usingAverage]) == 0):
+        if(sum([usingAverage, usingMedian, usingMax]) == 0):
             self._usingMax = True
             print("Using max as default method to compare the embeddings.")
         
@@ -72,6 +73,7 @@ class Retrieval():
             self._blacklistEmbeddings = torch.load(self._blacklistEmbeddingsFilename)
         except:
             print(f"Impossible to load pytorch embedding file, remember to build one before.\n Filename: '{self._blacklistEmbeddingsFilename}'")
+            exit(1)
 
     def setDistanceThreshold(self, threshold):
             self._distanceThreshold = threshold
@@ -115,7 +117,18 @@ class Retrieval():
         y = (x - mean) / std_adj
         return y
     
-    def evaluateFrame(self, input_image) -> int:
+    def evalFrameTextual(self, input_image) -> tuple[int,str]:
+        ret = self.__evaluateFrame(input_image)
+        self._status = ret
+        return ret, self.__getTextualOutputFromResult(ret)
+    
+    def evalFrame(self, input_image) -> int:
+        ret = self.__evaluateFrame(input_image)
+        self._status = ret
+        return ret
+    
+    
+    def __evaluateFrame(self, input_image) -> int:
         """_summary_
 
         Args:
@@ -285,6 +298,16 @@ class Retrieval():
         with open(resultsFileName, "w") as file:
             dump(resultDictionary, file)
 
-
     def isUsingMtcnn(self) -> bool:
         return self._usingMtcnn
+    
+    def hasMtcnnFailed(self) -> bool:
+        return self._status == 3 and self.isUsingMtcnn()
+    
+    def isPersonBlacklisted(self) -> bool:
+        return self._status == 1
+
+    
+    def __getTextualOutputFromResult(self, result:int) -> str:
+        retrieval_label = {1:'Detected and identified', 2:'Detected but not identified', 3: 'Not available yet',}
+        return retrieval_label[result]
