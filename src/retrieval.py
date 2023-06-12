@@ -115,7 +115,7 @@ class Retrieval():
     def evalFrameTextual(self, input_image) -> tuple[int,str]:
         ret = self.__evaluateFrame(input_image)
         self._status = ret
-        return ret, self.__getTextualOutputFromResult(ret)
+        return ret, self.__getTextualOutputFromResult()
     
     def evalFrame(self, input_image) -> int:
         ret = self.__evaluateFrame(input_image)
@@ -314,6 +314,6 @@ class Retrieval():
     def setDistanceFunction(self, distanceFunction):
             self._distanceFunction = distanceFunction
             
-    def __getTextualOutputFromResult(self, result:int) -> str:
+    def __getTextualOutputFromResult(self) -> str:
         retrieval_label = {1:'Detected and identified', 2:'Detected but not identified', 3: 'Not available yet',}
-        return retrieval_label[result]
+        return retrieval_label[self._status]
