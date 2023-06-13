@@ -142,14 +142,14 @@ class ImageAugmenter:
 
 # most aggressive transforms: flip, zoom
 
-augmenter = ImageAugmenter()
+# augmenter = ImageAugmenter()
 
-vid = cv2.VideoCapture(0)
+# vid = cv2.VideoCapture(0)
 
-while(True):
-    _, frame = vid.read()
-    cv2.imshow('Original Image', frame)
-    augmented_image = augmenter.apply_transforms(frame)
-    cv2.imshow("Augmented Image", augmented_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+# while(True):
+#     _, frame = vid.read()
+#     cv2.imshow('Original Image', frame)
+#     augmented_image = augmenter.apply_transforms(frame)
+#     cv2.imshow("Augmented Image", augmented_image)
+#     cv2.waitKey(0)
+#     cv2.destroyAllWindows()
