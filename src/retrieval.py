@@ -334,3 +334,6 @@ class Retrieval():
     def __getTextualOutputFromResult(self) -> str:
         retrieval_label = {1:'Detected and identified', 2:'Detected but not identified', 3: 'Not available yet',}
         return retrieval_label[self._status]
+    
+    def setUsingMtcnn(self, usingMtcnn:bool) -> None:
+        self._usingMtcnn = usingMtcnn
