@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 class ImageAugmenter:
-    def __init__(self):
+    def __init__(self, usingSuggestedTransforms=True, usingAllTransforms=False, transformList=[]):
         self.available_transforms = {
             "resize": self.resize,
             "blur": self.blur,
@@ -17,8 +17,28 @@ class ImageAugmenter:
             "tilt": self.tilt,
             "translate": self.translate
         }
+        
+        if(sum([usingSuggestedTransforms, usingAllTransforms, len(transformList) > 0]) > 1):
+            raise Exception("Only one of the 2 parameters can be set to True and/or the transformList must be empty.")
+        
+        self._transforms = []
 
-    def apply_transforms(self, image, transforms_list):
+        if(len(transformList) > 0):
+            self._transforms = transformList
+        
+        
+        if(usingSuggestedTransforms):
+            self._transforms = ["resize", "blur", "motion_blur", "rotate", "brightness", "contrast", "saturation", "tilt", "translate"]
+            
+        if(usingAllTransforms):
+            for key in self.available_transforms.keys():
+                self._transforms.append(key)
+        
+
+    def apply_transforms(self, image, transforms_list=None):
+        if transforms_list is None:
+            transforms_list = self._transforms
+        
         for transform_name in transforms_list:
             if transform_name in self.available_transforms:
                 transform_func = self.available_transforms[transform_name]
@@ -60,7 +80,7 @@ class ImageAugmenter:
         return flipped_image
 
     def adjust_brightness(self, image):
-        factor = random.uniform(0.7, 1.3)
+        factor = random.uniform(0.7, 1.4)
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
         v = cv2.multiply(v, factor)
@@ -70,12 +90,12 @@ class ImageAugmenter:
         return adjusted_image
 
     def adjust_contrast(self, image):
-        factor = random.uniform(0.7, 1.3)
+        factor = random.uniform(0.7, 1.4)
         adjusted_image = cv2.convertScaleAbs(image, alpha=factor, beta=0)
         return adjusted_image
 
     def adjust_saturation(self, image):
-        factor = random.uniform(0.7, 1.3)
+        factor = random.uniform(0.7, 2.0)
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
         s = np.clip(s * factor, 0, 255).astype(np.uint8)
@@ -122,10 +142,10 @@ class ImageAugmenter:
 
 
 
-
+# most aggressive transforms: flip, zoom
 
 augmenter = ImageAugmenter()
-transforms_list = ["resize", "blur", "zoom", "tilt"]
+
 vid = cv2.VideoCapture(0)
 
 while(True):
