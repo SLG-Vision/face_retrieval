@@ -35,11 +35,9 @@ class ImageAugmenter:
                 self._transforms.append(key)
         
 
-    def apply_transforms(self, image, transforms_list=None):
-        if transforms_list is None:
-            transforms_list = self._transforms
+    def apply_transforms(self, image):
         
-        for transform_name in transforms_list:
+        for transform_name in self._transforms:
             if transform_name in self.available_transforms:
                 transform_func = self.available_transforms[transform_name]
                 image = transform_func(image)
@@ -151,7 +149,7 @@ vid = cv2.VideoCapture(0)
 while(True):
     _, frame = vid.read()
     cv2.imshow('Original Image', frame)
-    augmented_image = augmenter.apply_transforms(frame, transforms_list)
+    augmented_image = augmenter.apply_transforms(frame)
     cv2.imshow("Augmented Image", augmented_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
