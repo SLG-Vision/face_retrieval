@@ -85,7 +85,7 @@ class ImageAugmenter:
 
 
     def zoom(self, image):
-        scale = random.uniform(0.8, 1.2)
+        scale = random.uniform(0.1, 0.3)
         rows, cols = image.shape[:2]
         cx = int(cols / 2)
         cy = int(rows / 2)
