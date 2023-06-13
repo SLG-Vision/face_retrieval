@@ -86,7 +86,7 @@ class Retrieval():
 
 
     # building
-    def buildBlacklistEmbeddings(self, blacklistFolderName="blacklist", augmentation_iter=1) -> None:
+    def buildBlacklistEmbeddings(self, blacklistFolderName="blacklist", augmentation_iter=0) -> None:
         self._blacklistFolderName = join(self._workspacePath, 'src', blacklistFolderName)
         
         self._blacklistEmbeddings = []
