@@ -14,7 +14,7 @@ from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CU
 from torch.nn import CosineSimilarity
 
 
-from ImageAugmenter import ImageAugmenter
+from imageaugmenter import ImageAugmenter
 
 
 class Retrieval():
