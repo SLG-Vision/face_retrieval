@@ -35,6 +35,7 @@ class Retrieval():
     _usingMax:bool = False
     _distanceMetric:str = "L2"
     _status:int = 0
+    _augmenter = ImageAugmenter(usingSuggestedTransforms=True)
     
     def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, debug=False) -> None:
         """constructor of the class
@@ -98,13 +99,29 @@ class Retrieval():
         for image_path in blacklist_images:
             currentImage = Image.open(image_path)
             croppedImage = self._mtcnn(currentImage)
+            if(self._visualize):
+                imshow("original image", currentImage)
+                imshow("cropped image", croppedImage)
+
             
             with torch.no_grad():
-                img_embedding = self._model(croppedImage.unsqueeze(0))
-                
-            self._blacklistEmbeddings.extend(img_embedding)
-            if(self._debug):
+                img_embeddings = []
+                images_aug = []
+                images_aug.append(croppedImage.unsqueeze(0)) # first image is the original one
+                if(augmentation_iter > 0):
+                    for i in range(augmentation_iter):
+                        images_aug.append(self._augmenter.apply_transforms(croppedImage.unsqueeze(0)))
+                        if(self._visualize):
+                            imshow(f"augmented image {i+1}/{augmentation_iter}", images_aug[-1])
+                    for img in images_aug:
+                        img_embeddings.append(self._model(img.unsqueeze(0)))
+                else:
+                    img_embeddings.append(self._model(croppedImage.unsqueeze(0)))
+            self._blacklistEmbeddings.extend(img_embeddings)
+            if(self._debug and augmentation_iter == 0):
                 print(f" --> {process} : {len(blacklist_images)}")
+            if(self._debug and augmentation_iter > 0):
+                print(f" --> {process * (augmentation_iter + 1)} : {len(blacklist_images)} * {augmentation_iter + 1}")
             process += 1
 
         torch.save(self._blacklistEmbeddings, self._blacklistEmbeddingsFilename)
