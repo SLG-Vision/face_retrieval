@@ -149,14 +149,6 @@ class Retrieval():
     
     
     def __evaluateFrame(self, input_image) -> int:
-        """_summary_
-
-        Args:
-            input_image (PIL, ndarray etc): current frame to evaluate
-
-        Returns:
-            int: 4 result not yet avialable, 3 if no face detected, 2 if face detected but not recognized, 1 if face detected and recognized
-        """
         self._distances.clear()
         if(type(input_image) == np.ndarray):
             input_image = self.toPilImage(input_image)
