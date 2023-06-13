@@ -12,6 +12,11 @@ from json import dump
 from collections import Counter
 from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INTER_AREA, INTER_LINEAR
 from torch.nn import CosineSimilarity
+
+
+from ImageAugmenter import ImageAugmenter
+
+
 class Retrieval():
     _usingMtcnn:bool = False
     _blacklistEmbeddingsFilename:str = ""
@@ -31,7 +36,7 @@ class Retrieval():
     _distanceMetric:str = "L2"
     _status:int = 0
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.7, distanceMetric='L2', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=False, debug=False) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, debug=False) -> None:
         """constructor of the class
 
         Args:
@@ -57,6 +62,9 @@ class Retrieval():
         self._usingMtcnn = usingMtcnn
         self._distanceMetric = distanceMetric
         self.toPilImage = T.ToPILImage(mode='RGB')
+        
+        self._Augmenter = ImageAugmenter()
+        
         
         if(sum([usingAverage, usingMedian, usingMax]) > 1):
             print("You can't use more than one method to compare the embeddings, please choose only one.")
