@@ -15,8 +15,9 @@ def inference():
     vid = cv2.VideoCapture(0)
     while True:
         _, frame = vid.read()
+        cv2.imshow("original_frame", frame)
         r_code, r_string = retr.evalFrameTextual(frame)
-        print(f"{r_code} --> {r_string}")   
+        print(f"{r_code} --> {r_string}") 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 

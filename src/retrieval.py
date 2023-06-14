@@ -10,9 +10,9 @@ from os import listdir, getcwd, walk
 from os.path import join
 from json import dump
 from collections import Counter
-from cv2 import resize, cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INTER_AREA, INTER_LINEAR
+from cv2 import cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INTER_AREA, INTER_LINEAR
 from torch.nn import CosineSimilarity
-
+from imutils import resize as imresize
 
 from imageaugmenter import ImageAugmenter
 
@@ -174,9 +174,9 @@ class Retrieval():
             else:
                 #x = asarray(resized.convert("RGB")) # 480*480*3
                 x = asarray(input_image.convert("RGB"))
-                resized = resize(x, dsize=(160,160), interpolation=INTER_LINEAR)
+                resized = imresize(x, height=160)
                 if(self._visualize):
-                    imshow('resized',resized) # type: ignore
+                    imshow('resized',resized)
 
                 y = torch.Tensor(resized).permute(2,0,1) # 3*160*160
                 y = y.unsqueeze(0) # 1*3*160*160
