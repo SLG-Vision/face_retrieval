@@ -2,7 +2,7 @@ from retrieval import Retrieval
 import cv2
 from os.path import dirname, abspath, join
 
-retr = Retrieval("def_blacklist.pt", threshold=0.18, debug=True, distanceMetric='cosine', usingAverage=True, usingMedian=False, usingMax=False, toVisualize=True, usingMtcnn=False)
+retr = Retrieval("def_blacklist.pt", threshold=0.18, debug=True, distanceMetric='cosine', usingAverage=True, usingMedian=False, usingMax=False, toVisualize=True, usingMtcnn=True)
 
 # Example of usage across the Building phase, opencv inference RT phase and testing phase
 
@@ -17,6 +17,10 @@ def inference():
         _, frame = vid.read()
         cv2.imshow("original_frame", frame)
         r_code, r_string = retr.evalFrameTextual(frame)
+            
+        if(retr.hasMtcnnFailed()):
+            continue
+        
         print(f"{r_code} --> {r_string}") 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

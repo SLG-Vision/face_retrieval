@@ -36,8 +36,9 @@ class Retrieval():
     _distanceMetric:str = "L2"
     _status:int = 0
     _augmenter = ImageAugmenter(usingSuggestedTransforms=True)
+    _mtcnnShowLandmarksPostProcessing:bool = False
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, debug=False) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, mtcnnShowLandmarksPostProcess=False, debug=False) -> None:
         """constructor of the class
 
         Args:
@@ -63,7 +64,7 @@ class Retrieval():
         self._usingMtcnn = usingMtcnn
         self._distanceMetric = distanceMetric
         self.toPilImage = T.ToPILImage(mode='RGB')
-        
+        self._mtcnnShowLandmarksPostProcessing = mtcnnShowLandmarksPostProcess
         self._Augmenter = ImageAugmenter()
         
         
@@ -161,16 +162,17 @@ class Retrieval():
                     return 3        # fallback
                 inference_embedding = self._model(input_cropped.unsqueeze(0))
                 if(self._visualize):
-                    boxes, probs, landmarks = self._mtcnn.detect(input_image, landmarks=True) # type: ignore
-                    self.toPilImage(input_cropped).show()
-                    fig, ax = plt.subplots(figsize=(16, 12))
-                    adj_img = cvtColor(np.array(input_image), COLOR_BGR2RGB)    
-                    ax.imshow(adj_img)
-                    ax.axis('off')
-                    for box, landmark in zip(boxes, landmarks):
-                        ax.scatter(*np.meshgrid(box[[0, 2]], box[[1, 3]])) # type: ignore
-                        ax.scatter(landmark[:, 0], landmark[:, 1], s=8)
-                    fig.show()
+                    imshow("mtcnn out",input_cropped.permute(1, 2, 0).numpy())
+                    if(self._mtcnnShowLandmarksPostProcessing):
+                        boxes, probs, landmarks = self._mtcnn.detect(input_image, landmarks=True) # type: ignore
+                        fig, ax = plt.subplots(figsize=(16, 12))
+                        adj_img = cvtColor(np.array(input_image), COLOR_BGR2RGB)    
+                        ax.imshow(adj_img)
+                        ax.axis('off')
+                        for box, landmark in zip(boxes, landmarks):
+                            ax.scatter(*np.meshgrid(box[[0, 2]], box[[1, 3]])) # type: ignore
+                            ax.scatter(landmark[:, 0], landmark[:, 1], s=8)
+                        fig.show()
             else:
                 #x = asarray(resized.convert("RGB")) # 480*480*3
                 x = asarray(input_image.convert("RGB"))
