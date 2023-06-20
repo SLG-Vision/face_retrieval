@@ -2,7 +2,7 @@ from retrieval import Retrieval
 import cv2
 from os.path import dirname, abspath, join
 
-retr = Retrieval("def_blacklist.pt", threshold=0.18, debug=True, distanceMetric='cosine', usingAverage=True, usingMedian=False, usingMax=False, toVisualize=True, usingMtcnn=True)
+retr = Retrieval("def_blacklist.pt", threshold=0.18, debug=True, distanceMetric='cosine', imagesCap=50, usingAverage=True, usingMedian=False, usingMax=False, toVisualize=True, usingMtcnn=True)
 
 # Example of usage across the Building phase, opencv inference RT phase and testing phase
 

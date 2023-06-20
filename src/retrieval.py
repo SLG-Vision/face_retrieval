@@ -16,6 +16,29 @@ from imutils import resize as imresize
 
 from image_augmenter import ImageAugmenter
 
+class Metrics():
+    _precision:float = 0
+    _recall:float = 0
+    _f1_score:float = 0
+    _f1_computed:bool = True
+    def __init__(self, precision:float, recall:float, computeF1=True) -> None:
+        self._precision = precision * 100
+        self._recall = recall * 100
+        self._f1_computed = computeF1
+        self.__computeF1Score()
+    
+    def __computeF1Score(self):
+        self._f1_score = 2 * ((self._precision * self._recall) / (self._precision + self._recall))
+        
+    def getPrecision(self):
+        return self._precision
+    def getRecall(self):
+        return self._recall
+    def getF1Score(self):
+        return self._f1_score
+    def isF1Computed(self):
+        return self._f1_computed
+
 
 class Retrieval():
     _usingMtcnn:bool = False
@@ -34,10 +57,15 @@ class Retrieval():
     _usingMax:bool = False
     _distanceMetric:str = ""
     _status:int = 0
+    _imagesCap:int = 0
     _augmenter = ImageAugmenter(usingSuggestedTransforms=True)
     _mtcnnShowLandmarksPostProcessing:bool = False
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, mtcnnShowLandmarksPostProcess=False, debug=False) -> None:
+        
+    
+    
+    
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', imagesCap=0, usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, mtcnnShowLandmarksPostProcess=False, debug=False) -> None:
         """constructor of the class
 
         Args:
@@ -65,6 +93,7 @@ class Retrieval():
         self.toPilImage = T.ToPILImage(mode='RGB')
         self._mtcnnShowLandmarksPostProcessing = mtcnnShowLandmarksPostProcess
         self._Augmenter = ImageAugmenter()
+        self._imagesCap = imagesCap
         
         
         if(sum([usingAverage, usingMedian, usingMax]) > 1):
@@ -254,10 +283,9 @@ class Retrieval():
         error_list = []
         self._distances = []
         res = {}
-        cont = 1
+        cont = 0
         for img in imglist:
-            if(cont == 50):
-                break
+            cont+=1
             if(self._debug):
                 print(f"Computing {cont}/{n_images} state: {'TP' if isTP else 'TN'}\n")
 
@@ -301,26 +329,72 @@ class Retrieval():
             res[img] = target    
 
             input_image.close()
-            cont += 1
+            
+            if(self._imagesCap > 0 and cont == self._imagesCap):
+                break
         return res
     
     
-    def __computeAccuracySide(self, testSetPath, truePositivePath) -> list[dict]:
+    def __computeMetrics(self, counter_TP:Counter, counter_TN:Counter):
+        
+        precision = counter_TP['T']/(counter_TP['T']+counter_TN['T'])
+        recall = counter_TP['T']/(counter_TP['T']+counter_TP['N'])
+        
+        m = Metrics(precision, recall)      
+
+        return m
+    
+    def __computeAccuracySide(self, testSetPath, truePositivePath) -> dict:
         tp_images, TP_number =  self.__get_image_files(truePositivePath)
         tn_images, TN_number = self.__get_image_files(testSetPath)
         res_TP = {}
         res_TN = {}
-
+        
         res_TP['details'] = self.__computeAccOnList(tp_images, isTP=True)
         res_TN['details'] = self.__computeAccOnList(tn_images, isTP=False)
-
-        res = [ {"true_positives:" : res_TP, "true_negatives:" : res_TN}]
+        
+        counter_TP = Counter(res_TP['details'].values())
+        counter_TN = Counter(res_TN['details'].values())
+        # compute precision        
+        
+        metrics = self.__computeMetrics(counter_TP, counter_TN)
+        
+        
+        
+        res_TP['outcome_summary'] = {
+                                    "total_true_positives_dataset_size": TP_number,
+                                    "detected_positives": counter_TP['T'],
+                                    "false_negatives": counter_TP['F'],
+                                    "errors": counter_TP['E'],
+                                    "accuracy": counter_TP['T']/TP_number if self._imagesCap == 0 else counter_TP['T']/self._imagesCap,
+                                    }
+        
+        res_TN['outcome_summary'] = {"total_true_negatives_dataset_size": TN_number,
+                                     "detected_negatives": counter_TN['F'],
+                                     "false_positives": counter_TN['T'],
+                                     "errors": counter_TN['E'],
+                                     "accuracy": counter_TN['F']/TN_number if self._imagesCap == 0 else counter_TN['F']/self._imagesCap,
+                                    }
+        test_session_info = {
+                            "using_image_cap": True if self._imagesCap > 0 else False,
+                            "image_cap_value": self._imagesCap,
+                            "threshold_used" : self._distanceThreshold,
+                            "distance_metric_used": self._distanceMetric,
+        }
+        
+        metrics = {
+            "precision": metrics.getPrecision(),
+            "recall": metrics.getRecall(),
+            "f1_score": metrics.getF1Score() if metrics.isF1Computed() else "Not Computed",
+        }
+        
+        res = {"metrics" : metrics, "dataset_infos": test_session_info, "true_positives:" : res_TP, "true_negatives:" : res_TN }
         
         return res
 
 
 
-    def computeAccuracy(self, testSetPath, truePositivePath, resultsFileName="results_accuracy.json") -> None:
+    def computeAccuracy(self, testSetPath, truePositivePath, resultsFileName="test_results.json") -> None:
         res = self.__computeAccuracySide(testSetPath, truePositivePath)
         #counter = Counter(res['detected'].values())
 
