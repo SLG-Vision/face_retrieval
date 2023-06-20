@@ -43,7 +43,7 @@ class Retrieval():
 
         Args:
             embeddingsFileName (_type_): .pt file with the blacklist embeddings.
-            weights (str, optional): pretrained weights of facenet. Defaults to 'vggface2'.
+            weights (str, optional): pretrained weights of facenet. Defaults to 'vggface2', alternative: 'casia-webface'
             threshold (float, optional): threshold value that determines the final label, be careful changing this accordingly the metrics you chose. Defaults to 0.7.
             distanceMetric (str, optional): distance metric between embeddings. Defaults to 'L2'.
             usingMedian (bool, optional): if element to group distance is given by median. Defaults to False.
@@ -75,6 +75,9 @@ class Retrieval():
         if(sum([usingAverage, usingMedian, usingMax]) == 0):
             self._usingMax = True
             print("Using max as default method to compare the embeddings.")
+        
+        if(weights != 'vggface2' and weights != 'casia-webface'):
+            print(f"The weights {weights} are not avialable or do not exist.")
         
         if(usingMtcnn):
             self._mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device=self._device)
@@ -311,6 +314,17 @@ class Retrieval():
 
         with open(resultsFileName, "w") as file:
             dump(resultDictionary, file)
+            
+        # Crea il grafico di accuracy
+        labels = ['Target Found', 'Target Not Found', 'Target Error']
+        values = [counter['T'], counter['F'], counter['E']]
+
+        plt.figure()
+        plt.bar(labels, values)
+        plt.xlabel('Categories')
+        plt.ylabel('Counts')
+        plt.title(f'InceptionResnet: {self._weights}')
+        plt.savefig(plotFileName)
 
 
     # getters and setters
@@ -339,3 +353,8 @@ class Retrieval():
     
     def setUsingMtcnn(self, usingMtcnn:bool) -> None:
         self._usingMtcnn = usingMtcnn
+        
+    def setWeights(self, weights) -> None:
+        if(self._weights != weights):
+            print("Warning: weights got changed, model may not be consistent anymore for testing.")
+        self._weights = weights

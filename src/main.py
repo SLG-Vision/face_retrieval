@@ -7,11 +7,11 @@ retr = Retrieval("def_blacklist.pt", threshold=0.18, debug=True, distanceMetric=
 # Example of usage across the Building phase, opencv inference RT phase and testing phase
 
 
-def building():
+def build():
     retr.buildBlacklistEmbeddings()
     
 
-def inference():
+def infer():
     vid = cv2.VideoCapture(0)
     while True:
         _, frame = vid.read()
@@ -25,13 +25,13 @@ def inference():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-def testing():
+def test():
     retr.computeAccuracy( join(dirname(abspath(__file__)), 'datasets','lfw' ), join(dirname(abspath(__file__)), 'datasets','TP' ))
 
 def main():
-    # building()
-    inference()
-    # testing()
+    # build()
+    infer()
+    # test()
 
 
 if __name__ == "__main__":
