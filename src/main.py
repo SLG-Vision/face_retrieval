@@ -26,12 +26,12 @@ def infer():
             break
 
 def test():
-    retr.computeAccuracy( join(dirname(abspath(__file__)), 'datasets','lfw' ), join(dirname(abspath(__file__)), 'datasets','TP' ))
+    retr.computeAccuracy( join(dirname(abspath(__file__)), 'datasets','lfw' ), join(dirname(abspath(__file__)), 'datasets','TP_Test' ))
 
 def main():
     # build()
-    infer()
-    # test()
+    # infer()
+    test()
 
 
 if __name__ == "__main__":

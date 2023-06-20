@@ -14,7 +14,7 @@ from cv2 import cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INT
 from torch.nn import CosineSimilarity
 from imutils import resize as imresize
 
-from .image_augmenter import ImageAugmenter
+from image_augmenter import ImageAugmenter
 
 
 class Retrieval():
@@ -22,7 +22,6 @@ class Retrieval():
     _blacklistEmbeddingsFilename:str = ""
     _blacklistEmbeddings:list[float] = []
     _distanceThreshold:float = 0
-    def _distanceFunction(x,y): torch.cdist(x,y,2) # type: ignore
     _debug:bool = False
     _distances:list[float] = []
     _visualize:bool = False
@@ -33,7 +32,7 @@ class Retrieval():
     _usingAverage:bool = True
     _usingMedian:bool = False
     _usingMax:bool = False
-    _distanceMetric:str = "L2"
+    _distanceMetric:str = ""
     _status:int = 0
     _augmenter = ImageAugmenter(usingSuggestedTransforms=True)
     _mtcnnShowLandmarksPostProcessing:bool = False
@@ -247,20 +246,20 @@ class Retrieval():
 
         return image_files, len(image_files)
     
-    def __computeAccuracySide(self, testSetPath, truePositivePath) -> tuple[dict, int, int, list, list]:
-        _, TP_number =  self.__get_image_files(truePositivePath)
-        images, n_images = self.__get_image_files(testSetPath)
-        res = {}
-        blacklist_embeddings = torch.load(self._blacklistEmbeddingsFilename)
-        cont = 1
-
+    
+    
+    def __computeAccOnList(self, imglist:list, isTP:bool):
+        n_images = len(imglist)
         positive_list = []
         error_list = []
-        distances = []
-
-        for img in images:
+        self._distances = []
+        res = {}
+        cont = 1
+        for img in imglist:
+            if(cont == 50):
+                break
             if(self._debug):
-                print(f"Computing {cont}/{n_images}\n")
+                print(f"Computing {cont}/{n_images} state: {'TP' if isTP else 'TN'}\n")
 
             input_image = Image.open(img)
             with torch.no_grad():
@@ -274,57 +273,83 @@ class Retrieval():
                     continue
                 input_embedding = self._model(input_cropped.unsqueeze(0))
 
-            for features in blacklist_embeddings:
-                dist = self._distanceFunction(features, input_embedding.squeeze(0))
-                distances.append(dist.item())
+            for features in self._blacklistEmbeddings:
+                dist = torch.Tensor([0])
+                if(self._distanceMetric == 'cosine'):
+                    cos = CosineSimilarity(dim=1, eps=1e-6)
+                    dist = cos(features.squeeze(0), input_embedding)
+                elif(self._distanceMetric == 'L2'):
+                    dist = torch.cdist(features.squeeze(0), input_embedding.unsqueeze(0), 2) # type: ignore
+                self._distances.append(dist.item())
 
-            max_distance = max(distances)
+            max_distance = max(self._distances)
+            avg_distance:float = sum(self._distances)/len(self._distances)
+            median_distance = np.median(self._distances)
+            if self._usingAverage:
+                distance = avg_distance
+            else:
+                if self._usingMedian:
+                    distance = median_distance
+                else:
+                    distance = max_distance
+                
+                
             target='F'
-            if max_distance >= self._distanceThreshold:
+            if distance >= self._distanceThreshold:
                 positive_list.append(img)
                 target='T'
-
             res[img] = target    
 
             input_image.close()
             cont += 1
-        return res, n_images, TP_number, positive_list, error_list
+        return res
+    
+    
+    def __computeAccuracySide(self, testSetPath, truePositivePath) -> list[dict]:
+        tp_images, TP_number =  self.__get_image_files(truePositivePath)
+        tn_images, TN_number = self.__get_image_files(testSetPath)
+        res_TP = {}
+        res_TN = {}
+
+        res_TP['details'] = self.__computeAccOnList(tp_images, isTP=True)
+        res_TN['details'] = self.__computeAccOnList(tn_images, isTP=False)
+
+        res = [ {"true_positives:" : res_TP, "true_negatives:" : res_TN}]
+        
+        return res
 
 
 
-    def computeAccuracy(self, testSetPath, truePositivePath, stdoutResult=True, resultsFileName="results_accuracy.json") -> None:
-        resultDictionary = {}
-        resultDictionary['detected'],n, tp_n_images, positive_list, error_list = self.__computeAccuracySide(testSetPath, truePositivePath)
-        counter = Counter(resultDictionary['detected'].values())
+    def computeAccuracy(self, testSetPath, truePositivePath, resultsFileName="results_accuracy.json") -> None:
+        res = self.__computeAccuracySide(testSetPath, truePositivePath)
+        #counter = Counter(res['detected'].values())
 
-        resultDictionary['positive_targets'] = positive_list
-        resultDictionary['error_targets'] = error_list
 
-        print(f"Total: {n}")
-        print(f"Actual TP: {tp_n_images}")
-        print(f"target found: {counter['T']}\ntarget not found: {counter['F']}\ntarget error: {counter['E']}\n")
+        # print(f"Total: {n}")
+        # print(f"Actual TP: {tp_n_images}")
+        # print(f"target found: {counter['T']}\ntarget not found: {counter['F']}\ntarget error: {counter['E']}\n")
 
-        if stdoutResult:
-            print("Positive targets:")
-            for e in positive_list:
-                print(e)
-            print("Error targets:")
-            for e in error_list:
-                print(e)
+        # if self._debug:
+        #     print("Positive targets:")
+        #     for e in positive_list:
+        #         print(e)
+        #     print("Error targets:")
+        #     for e in error_list:
+        #         print(e)
 
         with open(resultsFileName, "w") as file:
-            dump(resultDictionary, file)
+            dump(res, file)
             
         # Crea il grafico di accuracy
-        labels = ['Target Found', 'Target Not Found', 'Target Error']
-        values = [counter['T'], counter['F'], counter['E']]
+        # labels = ['Target Found', 'Target Not Found', 'Target Error']
+        # values = [counter['T'], counter['F'], counter['E']]
 
-        plt.figure()
-        plt.bar(labels, values)
-        plt.xlabel('Categories')
-        plt.ylabel('Counts')
-        plt.title(f'InceptionResnet: {self._weights}')
-        plt.savefig(plotFileName)
+        # plt.figure()
+        # plt.bar(labels, values)
+        # plt.xlabel('Categories')
+        # plt.ylabel('Counts')
+        # plt.title(f'InceptionResnet: {self._weights} Metric: {self._distanceMetric}')
+        # plt.savefig("Figura")
 
 
     # getters and setters
@@ -344,9 +369,6 @@ class Retrieval():
     def setDistanceThreshold(self, threshold):
             self._distanceThreshold = threshold
         
-    def setDistanceFunction(self, distanceFunction):
-            self._distanceFunction = distanceFunction
-            
     def __getTextualOutputFromResult(self) -> str:
         retrieval_label = {1:'Detected and identified', 2:'Detected but not identified', 3: 'Not available yet',}
         return retrieval_label[self._status]
