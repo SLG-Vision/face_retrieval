@@ -51,7 +51,7 @@ class Retrieval():
     _device:torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _blacklistFolderName:str = ""
     _workspacePath:str = getcwd()
-    _weigths:str = ""
+    _weights:str = ""
     _usingAverage:bool = True
     _usingMedian:bool = False
     _usingMax:bool = False
@@ -86,7 +86,7 @@ class Retrieval():
         self._usingMedian = usingMedian
         self._visualize = toVisualize
         self._blacklistEmbeddingsFilename = embeddingsFileName
-        self._weigths = weights
+        self._weights = weights
         self._debug = debug
         self._usingMtcnn = usingMtcnn
         self._distanceMetric = distanceMetric
@@ -109,7 +109,7 @@ class Retrieval():
         
         if(usingMtcnn):
             self._mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device=self._device)
-        self._model = InceptionResnetV1(pretrained=self._weigths).eval()
+        self._model = InceptionResnetV1(pretrained=self._weights).eval()
         try:
             self._blacklistEmbeddings = torch.load(self._blacklistEmbeddingsFilename)
         except:
@@ -366,20 +366,21 @@ class Retrieval():
                                     "detected_positives": counter_TP['T'],
                                     "false_negatives": counter_TP['F'],
                                     "errors": counter_TP['E'],
-                                    "accuracy": counter_TP['T']/TP_number if self._imagesCap == 0 else counter_TP['T']/self._imagesCap,
+                                    "accuracy": (counter_TP['T']/TP_number)*100 if self._imagesCap == 0 else (counter_TP['T']/self._imagesCap)*100,
                                     }
         
         res_TN['outcome_summary'] = {"total_true_negatives_dataset_size": TN_number,
                                      "detected_negatives": counter_TN['F'],
                                      "false_positives": counter_TN['T'],
                                      "errors": counter_TN['E'],
-                                     "accuracy": counter_TN['F']/TN_number if self._imagesCap == 0 else counter_TN['F']/self._imagesCap,
+                                     "accuracy": (counter_TN['F']/TN_number)*100 if self._imagesCap == 0 else (counter_TN['F']/self._imagesCap)*100,
                                     }
         test_session_info = {
                             "using_image_cap": True if self._imagesCap > 0 else False,
                             "image_cap_value": self._imagesCap,
                             "threshold_used" : self._distanceThreshold,
                             "distance_metric_used": self._distanceMetric,
+                            "pretrained_face_weights": self._weights,
         }
         
         metrics = {
@@ -388,7 +389,7 @@ class Retrieval():
             "f1_score": metrics.getF1Score() if metrics.isF1Computed() else "Not Computed",
         }
         
-        res = {"metrics" : metrics, "dataset_infos": test_session_info, "true_positives:" : res_TP, "true_negatives:" : res_TN }
+        res = {"metrics" : metrics, "test_session_info": test_session_info, "true_positives:" : res_TP, "true_negatives:" : res_TN }
         
         return res
 
