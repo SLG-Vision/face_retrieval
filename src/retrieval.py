@@ -58,14 +58,16 @@ class Retrieval():
     _distanceMetric:str = ""
     _status:int = 0
     _imagesCap:int = 0
-    _augmenter = ImageAugmenter(usingSuggestedTransforms=True)
+    _augmenter:ImageAugmenter = ImageAugmenter(usingSuggestedTransforms=True)
+    _augmentationIter:int = 0
+    _areEmbeddingsAugmented:bool = False
     _mtcnnShowLandmarksPostProcessing:bool = False
     
         
     
     
     
-    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', imagesCap=0, usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, mtcnnShowLandmarksPostProcess=False, debug=False) -> None:
+    def __init__(self, embeddingsFileName, weights='vggface2', threshold=0.1, distanceMetric='cosine', imagesCap=0, usingMedian = False, usingMax=False, usingMtcnn=True, usingAverage = True, toVisualize=True, augmentation_iter=0, mtcnnShowLandmarksPostProcess=False, debug=False) -> None:
         """constructor of the class
 
         Args:
@@ -94,7 +96,7 @@ class Retrieval():
         self._mtcnnShowLandmarksPostProcessing = mtcnnShowLandmarksPostProcess
         self._Augmenter = ImageAugmenter()
         self._imagesCap = imagesCap
-        
+        self._augmentationIter = augmentation_iter
         
         if(sum([usingAverage, usingMedian, usingMax]) > 1):
             print("You can't use more than one method to compare the embeddings, please choose only one.")
@@ -114,11 +116,10 @@ class Retrieval():
             self._blacklistEmbeddings = torch.load(self._blacklistEmbeddingsFilename)
         except:
             print(f"Impossible to load pytorch embedding file, remember to build one before.\n Filename: '{self._blacklistEmbeddingsFilename}'")
-            exit(1)
 
 
     # building
-    def buildBlacklistEmbeddings(self, blacklistFolderName="blacklist", augmentation_iter=0) -> None:
+    def buildBlacklistEmbeddings(self, blacklistFolderName="blacklist") -> None:
         self._blacklistFolderName = join(self._workspacePath, 'src', blacklistFolderName)
         
         self._blacklistEmbeddings = []
@@ -134,29 +135,41 @@ class Retrieval():
             if(self._visualize):
                 imshow("original image", currentImage)
                 imshow("cropped image", croppedImage)
-
+            if(croppedImage is None):
+                continue
             
             with torch.no_grad():
                 img_embeddings = []
                 images_aug = []
                 images_aug.append(croppedImage.unsqueeze(0)) # first image is the original one
-                if(augmentation_iter > 0):
-                    for i in range(augmentation_iter):
-                        images_aug.append(self._augmenter.apply_transforms(croppedImage.unsqueeze(0)))
+                if(self._augmentationIter > 0):
+                    for i in range(self._augmentationIter): # 1 img becomes len(transforms_list) images, this repeated for augmentationIter times
+                        # N = 1 (curr_img) + len(transforms_list) * augmentationIter
+                        self._augmenter.apply_transforms(croppedImage)
+                        self._augmenter.convertToTensor()
+                        l = self._augmenter.getTransformedTensors()
+                        images_aug.extend(l)    # original + len(transforms_list) images
                         if(self._visualize):
-                            imshow(f"augmented image {i+1}/{augmentation_iter}", images_aug[-1])
+                            imshow(f"augmented image {i+1}/{self._augmentationIter}", images_aug[-1])
                     for img in images_aug:
-                        img_embeddings.append(self._model(img.unsqueeze(0)))
+                        if(img.shape[0] != 3 and img.ndim == 3):
+                            continue
+                        if(img.ndim == 3):
+                            img=img.unsqueeze(0)
+                        img=img.float()
+                        img_embeddings.append(self._model(img))
                 else:
                     img_embeddings.append(self._model(croppedImage.unsqueeze(0)))
             self._blacklistEmbeddings.extend(img_embeddings)
-            if(self._debug and augmentation_iter == 0):
+            if(self._debug and self._augmentationIter == 0):
                 print(f" --> {process} : {len(blacklist_images)}")
-            if(self._debug and augmentation_iter > 0):
-                print(f" --> {process * (augmentation_iter + 1)} : {len(blacklist_images)} * {augmentation_iter + 1}")
+            if(self._debug and self._augmentationIter > 0):
+                print(f" --> {process * (self._augmentationIter + 1)} : {len(blacklist_images)} * {self._augmentationIter + 1}")
             process += 1
 
         torch.save(self._blacklistEmbeddings, self._blacklistEmbeddingsFilename)
+        if(self._augmentationIter > 0):
+            self._areEmbeddingsAugmented = True
     
     
     # inference
@@ -366,14 +379,14 @@ class Retrieval():
                                     "detected_positives": counter_TP['T'],
                                     "false_negatives": counter_TP['F'],
                                     "errors": counter_TP['E'],
-                                    "accuracy": (counter_TP['T']/TP_number)*100 if self._imagesCap == 0 else (counter_TP['T']/self._imagesCap)*100,
+                                    "accuracy": (counter_TP['T']/(TP_number - counter_TP['E']))*100 if self._imagesCap == 0 else (counter_TP['T']/self._imagesCap)*100,
                                     }
         
         res_TN['outcome_summary'] = {"total_true_negatives_dataset_size": TN_number,
                                      "detected_negatives": counter_TN['F'],
                                      "false_positives": counter_TN['T'],
                                      "errors": counter_TN['E'],
-                                     "accuracy": (counter_TN['F']/TN_number)*100 if self._imagesCap == 0 else (counter_TN['F']/self._imagesCap)*100,
+                                     "accuracy": (counter_TN['F']/(TN_number - counter_TN['E']))*100 if self._imagesCap == 0 else (counter_TN['F']/self._imagesCap)*100,
                                     }
         test_session_info = {
                             "using_image_cap": True if self._imagesCap > 0 else False,
@@ -381,6 +394,8 @@ class Retrieval():
                             "threshold_used" : self._distanceThreshold,
                             "distance_metric_used": self._distanceMetric,
                             "pretrained_face_weights": self._weights,
+                            "are_embeddings_augmented": self._areEmbeddingsAugmented,
+                            "augmentation_iter": self._augmentationIter,
         }
         
         metrics = {
