@@ -14,7 +14,7 @@ from cv2 import cvtColor, imshow, COLOR_BGR2RGB, COLOR_RGB2BGR, INTER_CUBIC, INT
 from torch.nn import CosineSimilarity
 from imutils import resize as imresize
 
-from image_augmenter import ImageAugmenter
+from .image_augmenter import ImageAugmenter
 
 class Metrics():
     _precision:float = 0
@@ -109,8 +109,8 @@ class Retrieval():
         if(weights != 'vggface2' and weights != 'casia-webface'):
             print(f"The weights {weights} are not avialable or do not exist.")
         
-        if(usingMtcnn):
-            self._mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device=self._device)
+        #if(usingMtcnn):
+        self._mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device=self._device)
         self._model = InceptionResnetV1(pretrained=self._weights).eval()
         try:
             self._blacklistEmbeddings = torch.load(self._blacklistEmbeddingsFilename)
@@ -195,13 +195,15 @@ class Retrieval():
     
     def __evaluateFrame(self, input_image) -> int:
         self._distances.clear()
-        if(type(input_image) == np.ndarray):
-            input_image = self.toPilImage(input_image)
+        #if(type(input_image) == np.ndarray):
+        #    input_image = self.toPilImage(input_image)
 
 
         with torch.no_grad():
             if(self._usingMtcnn):   # 3*160*160
-                input_cropped = self._mtcnn(input_image.convert("RGB"))
+                if(self._visualize):
+                    imshow('mtcnn in',input_image)
+                input_cropped = self._mtcnn(input_image)
                 if(input_cropped is None):
                     return 3        # fallback
                 inference_embedding = self._model(input_cropped.unsqueeze(0))

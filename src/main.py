@@ -30,8 +30,8 @@ def test():
 
 def main():
     # build()
-    # infer()
-    test()
+    infer()
+    # test()
 
 
 if __name__ == "__main__":
