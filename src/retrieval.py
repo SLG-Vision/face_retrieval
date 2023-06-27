@@ -223,6 +223,8 @@ class Retrieval():
                         fig.show()
             else:
                 #x = asarray(resized.convert("RGB")) # 480*480*3
+                if(type(input_image) == np.ndarray):
+                    input_image = self.toPilImage(input_image)
                 x = asarray(input_image.convert("RGB"))
                 resized = imresize(x, height=160)
                 if(self._visualize):
