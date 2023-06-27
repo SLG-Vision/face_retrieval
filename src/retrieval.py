@@ -107,10 +107,10 @@ class Retrieval():
             print("Using max as default method to compare the embeddings.")
         
         if(weights != 'vggface2' and weights != 'casia-webface'):
-            print(f"The weights {weights} are not avialable or do not exist.")
+            print(f"The weights '{weights}' are not avialable or do not exist.")
         
         #if(usingMtcnn):
-        self._mtcnn = MTCNN(image_size=160, margin=0, select_largest=False, post_process=True, device=self._device)
+        self._mtcnn = MTCNN(image_size=160, margin=0, select_largest=True, keep_all=False, selection_method='largest', post_process=True, device=self._device)
         self._model = InceptionResnetV1(pretrained=self._weights).eval()
         try:
             self._blacklistEmbeddings = torch.load(self._blacklistEmbeddingsFilename)
@@ -203,7 +203,9 @@ class Retrieval():
             if(self._usingMtcnn):   # 3*160*160
                 if(self._visualize):
                     imshow('mtcnn in',input_image)
-                input_cropped = self._mtcnn(input_image)
+                    
+                input_cropped = self._mtcnn(self.toPilImage(input_image))
+                
                 if(input_cropped is None):
                     return 3        # fallback
                 inference_embedding = self._model(input_cropped.unsqueeze(0))
